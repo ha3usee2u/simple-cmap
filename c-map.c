@@ -14,6 +14,7 @@ rb_node_t* rb_node_create(map_t* map, int key, void* value) {
 
 //建立map的核心
 //其中cmp_func作為一個function pointer指向自定義比較的函數
+//此外，因應紅黑樹的基本要求，提供一個nil的黑色節點取代原本的NULL
 extern map_t* map_create(cmp_func_t cmp_func) {
     map_t* map = malloc(sizeof(map_t));
     rb_node_t* nil = malloc(sizeof(rb_node_t));
