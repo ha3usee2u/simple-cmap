@@ -1,7 +1,7 @@
 #include "c-map.h"
 
 //建立紅黑樹的節點，在執行map_insert時用到
-rb_node_t* rb_node_create(map_t* map, int key, void* value) {
+rb_node_t* rb_node_create(map_t* map, int key, char* value) {
     rb_node_t* node = malloc(sizeof(rb_node_t));
     node -> left = map -> nil;
     node -> right = map -> nil;
@@ -185,7 +185,7 @@ void rb_insert_fixup(map_t* map, rb_node_t* node) {
 }
 
 //在map裡插入一個節點(key: value)，並按照紅黑樹的規則平衡
-extern void map_insert(map_t* map, int key, void* value) {
+extern void map_insert(map_t* map, int key, char* value) {
     rb_node_t* parent = map -> nil;
     rb_node_t* node = map -> root;
     while (node != map -> nil) {

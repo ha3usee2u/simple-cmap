@@ -4,6 +4,7 @@
 int main() {
     
     map_t* my_map = map_create(map_cmp_int);
+    int a[3] = { 1, 2, 3 };
     
     map_insert(my_map, 20, "hello");
     map_insert(my_map, 10, "world");
