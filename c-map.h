@@ -19,7 +19,7 @@ typedef struct rb_node {
 
 typedef int (*cmp_func_t)(int, int);
 
-typedef struct map {
+typedef struct map { 
     rb_node_t* root;
     rb_node_t* nil;
 

@@ -21,5 +21,5 @@ int main() {
     map_delete(my_map, 40);
     printf("%s ", map_search(my_map, 40) -> value);
 
-    return 0;
+    return 0; 
 }

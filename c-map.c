@@ -363,5 +363,5 @@ extern int map_cmp_int(int key1, int key2) {
         }
         else {
             return 0;
-        }
+        } 
 }
