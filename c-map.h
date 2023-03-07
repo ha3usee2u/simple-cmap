@@ -27,19 +27,19 @@ typedef struct map {
 } map_t;
 
 rb_node_t* rb_node_create(map_t* map, int key, void* value);
-map_t* map_create(cmp_func_t cmp_func);
+extern map_t* map_create(cmp_func_t cmp_func);
 void rb_node_destroy(rb_node_t* node);
-void map_destroy(map_t* map);
+extern void map_destroy(map_t* map);
 rb_node_t* map_search(map_t* map, int key);
 void rotate_left(map_t* map, rb_node_t* node);
 void rotate_right(map_t* map, rb_node_t* node);
 void rb_insert_fixup(map_t* map, rb_node_t* node);
-void map_insert(map_t* map, int key, void* value);
+extern void map_insert(map_t* map, int key, void* value);
 void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v);
 rb_node_t* rb_minimum(map_t* map, rb_node_t* node);
 void rb_delete_fixup(map_t* map, rb_node_t* x);
-void map_delete(map_t* map, int key);
+extern void map_delete(map_t* map, int key);
 
-extern int rb_cmp_int(int key1, int key2);
+extern int map_cmp_int(int key1, int key2);
 
 #endif

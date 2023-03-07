@@ -3,7 +3,7 @@
 
 int main() {
     
-    map_t* my_map = map_create(rb_cmp_int);
+    map_t* my_map = map_create(map_cmp_int);
     
     map_insert(my_map, 20, "hello");
     map_insert(my_map, 10, "world");

@@ -14,7 +14,7 @@ rb_node_t* rb_node_create(map_t* map, int key, void* value) {
 
 //建立map的核心
 //其中cmp_func作為一個function pointer指向自定義比較的函數
-map_t* map_create(cmp_func_t cmp_func) {
+extern map_t* map_create(cmp_func_t cmp_func) {
     map_t* map = malloc(sizeof(map_t));
     rb_node_t* nil = malloc(sizeof(rb_node_t));
     
@@ -38,7 +38,7 @@ void rb_node_destroy(rb_node_t* node) {
 }
 
 //清除整個map的資源，循環刪除map上的任何節點
-void map_destroy(map_t* map) {
+extern void map_destroy(map_t* map) {
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
         if (node -> left != map -> nil) {
@@ -68,7 +68,7 @@ void map_destroy(map_t* map) {
 }
 
 //使用指定的key查詢指定map上的對應value
-rb_node_t* map_search(map_t* map, int key) {
+extern rb_node_t* map_search(map_t* map, int key) {
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
         int cmp = map -> cmp_func(key, node -> key);
@@ -184,7 +184,7 @@ void rb_insert_fixup(map_t* map, rb_node_t* node) {
 }
 
 //在map裡插入一個節點(key: value)，並按照紅黑樹的規則平衡
-void map_insert(map_t* map, int key, void* value) {
+extern void map_insert(map_t* map, int key, void* value) {
     rb_node_t* parent = map -> nil;
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
@@ -307,7 +307,7 @@ void rb_delete_fixup(map_t* map, rb_node_t* x) {
     x -> color = BLACK;
 }
 
-void map_delete(map_t* map, int key) {
+extern void map_delete(map_t* map, int key) {
     rb_node_t* node = map_search(map, key);
     
     if (node == map -> nil) {
@@ -353,7 +353,7 @@ void map_delete(map_t* map, int key) {
     rb_node_destroy(node);
 }
 
-extern int rb_cmp_int(int key1, int key2) {
+extern int map_cmp_int(int key1, int key2) {
         if (key1 < key2) {
             return -1;
         }
