@@ -15,7 +15,7 @@ rb_node_t* rb_node_create(map_t* map, int key, char* value) {
 //建立map的核心
 //其中cmp_func作為一個function pointer指向自定義比較的函數
 //此外，因應紅黑樹的基本要求，提供一個nil的黑色節點取代原本的NULL
-extern map_t* map_create(cmp_func_t cmp_func) {
+map_t* map_create(cmp_func_t cmp_func) {
     map_t* map = malloc(sizeof(map_t));
     rb_node_t* nil = malloc(sizeof(rb_node_t));
     
@@ -39,7 +39,7 @@ void rb_node_destroy(rb_node_t* node) {
 }
 
 //清除整個map的資源，循環刪除map上的任何節點
-extern void map_destroy(map_t* map) {
+void map_destroy(map_t* map) {
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
         if (node -> left != map -> nil) {
@@ -69,7 +69,7 @@ extern void map_destroy(map_t* map) {
 }
 
 //使用指定的key查詢指定map上的對應value
-extern rb_node_t* map_search(map_t* map, int key) {
+rb_node_t* map_search(map_t* map, int key) {
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
         int cmp = map -> cmp_func(key, node -> key);
@@ -139,7 +139,10 @@ void rotate_right(map_t* map, rb_node_t* node) {
     node -> parent = left;
 }
 
+//插入節點後，將map調整成符合標準紅黑樹的規則
 void rb_insert_fixup(map_t* map, rb_node_t* node) {
+    //新增的節點初始為紅色，如果其親代節點也是紅色，則必須調整
+    //調整完進入下次循環，一樣考慮節點及其親代節點是否為紅色
     while (node -> parent -> color == RED) {
         if (node -> parent == node -> parent -> parent -> left) {
             rb_node_t* uncle = node -> parent -> parent -> right;
@@ -184,8 +187,8 @@ void rb_insert_fixup(map_t* map, rb_node_t* node) {
     map -> root -> color = BLACK;
 }
 
-//在map裡插入一個節點(key: value)，並按照紅黑樹的規則平衡
-extern void map_insert(map_t* map, int key, char* value) {
+//在map裡插入一個節點(key: value)
+void map_insert(map_t* map, int key, char* value) {
     rb_node_t* parent = map -> nil;
     rb_node_t* node = map -> root;
     while (node != map -> nil) {
@@ -199,7 +202,7 @@ extern void map_insert(map_t* map, int key, char* value) {
         else if (cmp > 0) {
             node = node -> right;
         }
-        //如果在指定的map裡找到與key相同的節點，則更新其對應的value，不新增節點
+        //如果在指定的map裡找到與key相同的節點，則更新其對應的value，不另外新增節點
         else {
             node -> value = value;
             return;
@@ -219,10 +222,11 @@ extern void map_insert(map_t* map, int key, char* value) {
     else {
         parent -> right = new_node;
     }
-
+    //需按照紅黑樹的規則平衡
     rb_insert_fixup(map, new_node);
 }
 
+//待刪除的u節點，其原本的位置將由v節點接手，此函數沒有將u節點刪除
 void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v) {
     if (u -> parent == map -> nil) {
         map -> root = v;
@@ -237,6 +241,7 @@ void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v) {
     v -> parent = u -> parent;
 }
 
+//在刪除階段，如果非葉節點被刪除，則必須找一個距離key數值最近且大於該節點 的節點
 rb_node_t* rb_minimum(map_t* map, rb_node_t* node) {
     while (node -> left != map -> nil) {
         node = node -> left;
@@ -245,6 +250,7 @@ rb_node_t* rb_minimum(map_t* map, rb_node_t* node) {
     return node;
 }
 
+//在刪除節點之後，將map調整成符合標準紅黑樹的規則
 void rb_delete_fixup(map_t* map, rb_node_t* x) {
     while (x != map -> root && x -> color == BLACK) {
         if (x == x -> parent -> left) {
@@ -308,7 +314,8 @@ void rb_delete_fixup(map_t* map, rb_node_t* x) {
     x -> color = BLACK;
 }
 
-extern void map_delete(map_t* map, int key) {
+//刪除map裡指定key的節點
+void map_delete(map_t* map, int key) {
     rb_node_t* node = map_search(map, key);
     
     if (node == map -> nil) {
@@ -328,7 +335,7 @@ extern void map_delete(map_t* map, int key) {
         rb_transplant(map, node, node -> left);
     }
     else {
-        y = rb_minimum(map, node -> right);
+        y = rb_minimum(map, node -> right); //找到一個key比node的大且其數值距離node最近的節點y
         y_original_color = y -> color;
         x = y -> right;
 
@@ -354,7 +361,8 @@ extern void map_delete(map_t* map, int key) {
     rb_node_destroy(node);
 }
 
-extern int map_cmp_int(int key1, int key2) {
+//預設比較函數
+int map_cmp_int(int key1, int key2) {
         if (key1 < key2) {
             return -1;
         }
