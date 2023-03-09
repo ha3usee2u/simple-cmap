@@ -28,13 +28,18 @@ typedef struct map {
 
 rb_node_t* rb_node_create(map_t* map, int key, char* value);
 map_t* map_create(cmp_func_t cmp_func);
+
 void rb_node_destroy(rb_node_t* node);
 void map_destroy(map_t* map);
+
 rb_node_t* map_search(map_t* map, int key);
+
 void rotate_left(map_t* map, rb_node_t* node);
 void rotate_right(map_t* map, rb_node_t* node);
+
 void rb_insert_fixup(map_t* map, rb_node_t* node);
 void map_insert(map_t* map, int key, char* value);
+
 void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v);
 rb_node_t* rb_minimum(map_t* map, rb_node_t* node);
 void rb_delete_fixup(map_t* map, rb_node_t* x);
