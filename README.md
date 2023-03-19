@@ -11,7 +11,7 @@
 <br>
 ### Insert the node into the map
 `void map_insert(map_t* map, int key, char* value)`
-<br>
+<br><br>
 ### Search the node from the map
 `rb_node_t* map_search(map_t* map, int key)`
 
@@ -19,4 +19,5 @@ The output is the node from the map. If the search failed, the output will be a 
 <br>
 ### Delete a node from the map
 `void map_delete(map_t* map, int key)`
+<br>
 
