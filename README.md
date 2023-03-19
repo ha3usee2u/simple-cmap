@@ -11,7 +11,7 @@
 
 ### Insert the node into the map
 `void map_insert(map_t* map, int key, char* value)`
-<br>
+<br><br><br><br><br><br>
 ### Search the node from the map
 `rb_node_t* map_search(map_t* map, int key)`
 
