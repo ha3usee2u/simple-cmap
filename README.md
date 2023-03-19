@@ -10,8 +10,8 @@
 `cmp_func` is the function for key comparison in the map, and the default is in ascending order.  
 
 ### Insert the node into the map
-`void map_insert(map_t* map, int key, char* value)`  
-
+`void map_insert(map_t* map, int key, char* value)`
+<br>
 ### Search the node from the map
 `rb_node_t* map_search(map_t* map, int key)`
 
