@@ -1,50 +1,41 @@
-#ifndef __simple_c_map_h__
-#define __simple_c_map_h__
+#ifndef GUANGONGDOUDIANTOU_SIMPLE_C_MAP
+#define GUANGONGDOUDIANTOU_SIMPLE_C_MAP
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>  // for size_t
 
-typedef enum { RED, BLACK } color_t;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct rb_node {
-    int key;
-    void* value;
+// 類型別名（由 map_internal 提供）
+typedef void* key_t;
+typedef void* value_t;
+typedef struct map map_t;
+typedef int (*cmp_func_t)(key_t, key_t);
+typedef void (*map_free_fn)(key_t, value_t);
 
-    color_t color;
-    
-    struct rb_node* left;
-    struct rb_node* right;
-    struct rb_node* parent;
-} rb_node_t;
+// 建立與釋放
+map_t* map_create(cmp_func_t cmp_func, map_free_fn cleanup_fn);
+void map_free(map_t* map);
 
-typedef int (*cmp_func_t)(int, int);
+// 操作函式
+int map_insert(map_t* map, key_t key, value_t value);
+value_t map_get(map_t* map, key_t key);
+int map_remove(map_t* map, key_t key);
+int map_contains(map_t* map, key_t key);
 
-typedef struct map { 
-    rb_node_t* root;
-    rb_node_t* nil;
+// 枚舉與工具
+void map_foreach(map_t* map, void (*callback)(key_t, value_t));
+key_t* map_keys(map_t* map, size_t* out_count);
 
-    cmp_func_t cmp_func;
-} map_t;
+// （可選：延伸功能）
+value_t* map_values(map_t* map, size_t* out_count);
+void map_clear(map_t* map);
+size_t map_size(map_t* map);
 
-rb_node_t* rb_node_create(map_t* map, int key, char* value);
-map_t* map_create(cmp_func_t cmp_func);
-
-void rb_node_destroy(rb_node_t* node);
-void map_destroy(map_t* map);
-
-rb_node_t* map_search(map_t* map, int key);
-
-void rotate_left(map_t* map, rb_node_t* node);
-void rotate_right(map_t* map, rb_node_t* node);
-
-void rb_insert_fixup(map_t* map, rb_node_t* node);
-void map_insert(map_t* map, int key, char* value);
-
-void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v);
-rb_node_t* rb_minimum(map_t* map, rb_node_t* node);
-void rb_delete_fixup(map_t* map, rb_node_t* x);
-void map_delete(map_t* map, int key);
-
-int map_cmp_int(int key1, int key2);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

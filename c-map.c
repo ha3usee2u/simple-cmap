@@ -1,375 +1,99 @@
 #include "c-map.h"
+#include "map_internal.h"  // 包含 map_t 和 rb_node 結構定義與內部函式
 
-//建立紅黑樹的節點，在執行map_insert時用到
-rb_node_t* rb_node_create(map_t* map, int key, char* value) {
-    rb_node_t* node = malloc(sizeof(rb_node_t));
-    node -> left = map -> nil;
-    node -> right = map -> nil;
-    node -> parent = map -> nil;
-    node -> color = RED;
-    node -> key = key;
-    node -> value = value;
-    return node;
-}
-
-//建立map的核心
-//其中cmp_func作為一個function pointer指向自定義比較的函數
-//此外，因應紅黑樹的基本要求，提供一個nil的黑色節點取代原本的NULL
-map_t* map_create(cmp_func_t cmp_func) {
+map_t* map_create(cmp_func_t cmp_func, map_free_fn cleanup_fn) {
+    if (!cmp_func) return NULL;  // 確保比較函式不為 NULL
     map_t* map = malloc(sizeof(map_t));
-    rb_node_t* nil = malloc(sizeof(rb_node_t));
-    
-    nil -> left = nil;
-    nil -> right = nil;
-    nil -> parent = nil;
-    nil -> color = BLACK;
-    nil -> key = 0;
-    nil -> value = NULL;
+    if (!map) return NULL;  // 分配失敗
 
-    map -> root = nil;
-    map -> nil = nil;
-    map -> cmp_func = cmp_func;
+    map->nil = malloc(sizeof(rb_node_t));  // 需初始化 nil 節點
+    map->nil->color = BLACK;
+    map->nil->left = map->nil->right = map->nil->parent = NULL;
 
+    map->root = map->nil;
+    map->cmp_func = cmp_func;
+    map->cleanup_fn = cleanup_fn;
     return map;
 }
 
-//清除節點的資源
-void rb_node_destroy(rb_node_t* node) {
-    free(node);
+static void cleanup(rb_node_t* node, map_t* map) {
+        if (node == map->nil) return;
+        cleanup(node->left, map);
+        cleanup(node->right, map);
+        if (map->cleanup_fn) map->cleanup_fn(node->key, node->value);
+        free(node);
 }
 
-//清除整個map的資源，循環刪除map上的任何節點
-void map_destroy(map_t* map) {
-    rb_node_t* node = map -> root;
-    while (node != map -> nil) {
-        if (node -> left != map -> nil) {
-            node = node -> left;
-        }
-        else if (node -> right != map -> nil) {
-            node = node -> right;
-        }
-        else {
-            rb_node_t* parent = node -> parent;
-            if (parent != map -> nil) {
-                if (parent -> left == node) {
-                    parent -> left = map -> nil;
-                }
-                else {
-                    parent -> right = map -> nil;
-                }
-            }
-            
-            rb_node_destroy(node);
-            node = parent;
-        }
-    }
-
-    free(map -> nil);
+void map_free(map_t* map) {
+    if (!map) return;
+    cleanup(map->root, map);
+    free(map->nil);
     free(map);
 }
 
-//使用指定的key查詢指定map上的對應value
-rb_node_t* map_search(map_t* map, int key) {
-    rb_node_t* node = map -> root;
-    while (node != map -> nil) {
-        int cmp = map -> cmp_func(key, node -> key);
-        if (cmp == 0) {
-            return node;
-        }
-        else if (cmp < 0) {
-            node = node -> left;
-        }
-        else {
-            node = node -> right;
-        }
-    }
-
-    return map -> nil;
+int map_insert(map_t* map, key_t key, value_t value) {
+    if (!map || !key) return -1;  // 檢查 map 和 key 是否有效
+    // 呼叫你內部的 insert 函式
+    return rb_insert(map, key, value);
 }
 
-//針對node、node右子節點的換位，node變成(node右子節點)的左子節點
-void rotate_left(map_t* map, rb_node_t* node) {
-    rb_node_t* right = node -> right;
-    node -> right = right -> left;
-    if (right -> left != map -> nil) {
-        right -> left -> parent = node;
-    }
-
-    right -> parent = node -> parent;
-
-    //當node原本為頂點的情況
-    if (node -> parent == map -> nil) {
-        map -> root = right;
-    }
-    //由node右子節點取代原本node在親代節點的位置
-    else if (node == node -> parent -> left) {
-        node -> parent -> left = right;
-    }
-    else {
-        node -> parent -> right = right;
-    }
-
-    right -> left = node;
-    node -> parent = right;
+value_t map_get(map_t* map, key_t key) {
+    if (!map || !key) return NULL;  // 檢查 map 和 key 是否有效
+    rb_node_t* node = rb_search(map, key);
+    return (node != map->nil) ? node->value : NULL;
 }
 
-//針對node、node左子節點的換位，node變成(node左子節點)的右子節點
-void rotate_right(map_t* map, rb_node_t* node) {
-    rb_node_t* left = node -> left;
-    node -> left = left -> right;
-    if (left -> right != map -> nil) {
-        left -> right -> parent = node;
-    }
-
-    left -> parent = node -> parent;
-    
-    //當node原本為頂點的情況
-    if (node -> parent == map -> nil) {
-        map -> root = left;
-    }
-    //由node左子節點取代原本node在親代節點的位置
-    else if (node == node -> parent -> right) {
-        node -> parent -> right = left;
-    }
-    else {
-        node -> parent -> right = left;
-    }
-
-    left -> right = node;
-    node -> parent = left;
+int map_contains(map_t* map, key_t key) {
+    if (!map || !key) return 0;  // 檢查 map 和 key 是否有效
+    return rb_search(map, key) != map->nil;
 }
 
-//插入節點後，將map調整成符合標準紅黑樹的規則
-void rb_insert_fixup(map_t* map, rb_node_t* node) {
-    //新增的節點初始為紅色，如果其親代節點也是紅色，則必須調整
-    //調整完進入下次循環，一樣考慮節點及其親代節點是否為紅色
-    while (node -> parent -> color == RED) {
-        if (node -> parent == node -> parent -> parent -> left) {
-            rb_node_t* uncle = node -> parent -> parent -> right;
-            if (uncle -> color == RED) {
-                node -> parent -> color = BLACK;
-                uncle -> color = BLACK;
-                node -> parent -> parent -> color = RED;
-                node = node -> parent -> parent;
-            }
-            else {
-                if (node == node -> parent -> right) {
-                    node = node -> parent;
-                    rotate_left(map, node);
-                }
-
-                node -> parent -> color = BLACK;
-                node -> parent -> parent -> color = RED;
-                rotate_right(map, node -> parent -> parent);
-            }
-        }
-        else {
-            rb_node_t* uncle = node -> parent -> parent -> left;
-            if (uncle -> color == RED) {
-                node -> parent -> color = BLACK;
-                uncle -> color = BLACK;
-                node -> parent -> parent -> color = RED;
-                node = node -> parent -> parent;
-            }
-            else {
-                if (node == node -> parent -> left) {
-                    node = node -> parent;
-                    rotate_right(map, node);
-                }
-
-                node -> parent -> color = BLACK;
-                node -> parent -> parent -> color = RED;
-                rotate_left(map, node -> parent -> parent);
-            }
-        }
-    }
-
-    map -> root -> color = BLACK;
+int map_remove(map_t* map, key_t key) {
+    if (!map || !key) return -1;  // 檢查 map 和 key 是否有效
+    return rb_delete(map, key);  // 你內部應該實作好這個
 }
 
-//在map裡插入一個節點(key: value)
-void map_insert(map_t* map, int key, char* value) {
-    rb_node_t* parent = map -> nil;
-    rb_node_t* node = map -> root;
-    while (node != map -> nil) {
-        parent = node;
-
-        //加入自定義的比較函數作為排序的原則
-        int cmp = map -> cmp_func(key, node -> key);
-        if (cmp < 0) {  
-            node = node -> left;
-        }
-        else if (cmp > 0) {
-            node = node -> right;
-        }
-        //如果在指定的map裡找到與key相同的節點，則更新其對應的value，不另外新增節點
-        else {
-            node -> value = value;
-            return;
-        }
-    }
-    
-    //找到存放的位置後，建立節點
-    rb_node_t* new_node = rb_node_create(map, key, value);
-    new_node -> parent = parent;
-    
-    if (parent == map -> nil) {
-        map -> root = new_node;
-    }
-    else if (key < parent -> key) {
-        parent -> left = new_node;
-    }
-    else {
-        parent -> right = new_node;
-    }
-    //需按照紅黑樹的規則平衡
-    rb_insert_fixup(map, new_node);
+static void traverse(rb_node_t* node, void (*callback)(key_t, value_t), rb_node_t* nil) {
+    if (node == nil) return;
+    traverse(node->left, callback, nil);
+    callback(node->key, node->value);
+    traverse(node->right, callback, nil);
 }
 
-//待刪除的u節點，其原本的位置將由v節點接手，此函數沒有將u節點刪除
-void rb_transplant(map_t* map, rb_node_t* u, rb_node_t* v) {
-    if (u -> parent == map -> nil) {
-        map -> root = v;
-    }
-    else if (u == u -> parent -> left) {
-        u -> parent -> left = v;
-    }
-    else {
-        u -> parent -> left = v;
-    }
-
-    v -> parent = u -> parent;
+void map_foreach(map_t* map, void (*callback)(key_t, value_t)) {
+    if (!map || !callback) return;
+    traverse(map->root, callback, map->nil);
 }
 
-//在刪除階段，如果非葉節點被刪除，則必須找一個距離key數值最近且大於該節點 的節點
-rb_node_t* rb_minimum(map_t* map, rb_node_t* node) {
-    while (node -> left != map -> nil) {
-        node = node -> left;
+static void collect(rb_node_t* node, key_t** keys, size_t* count, size_t* cap, rb_node_t* nil) {
+    if (node == nil) return;
+    collect(node->left, keys, count, cap, nil);
+    if (*count == *cap) {
+        *cap *= 2;
+        key_t* temp = realloc(*keys, *cap * sizeof(key_t));
+        if (!temp) {
+            perror("Key reallocation failed");
+            exit(EXIT_FAILURE);
+        }
+        *keys = temp;
     }
-
-    return node;
+    (*keys)[(*count)++] = node->key;
+    collect(node->right, keys, count, cap, nil);
 }
 
-//在刪除節點之後，將map調整成符合標準紅黑樹的規則
-void rb_delete_fixup(map_t* map, rb_node_t* x) {
-    while (x != map -> root && x -> color == BLACK) {
-        if (x == x -> parent -> left) {
-            rb_node_t* w = x -> parent -> right;
-            if (w -> color == RED) {
-                w -> color = BLACK;
-                x -> parent -> color = RED;
-                rotate_left(map, x -> parent);
-                w = x -> parent -> right;
-            }
+key_t* map_keys(map_t* map, size_t* out_count) {
+    if (!map) return NULL;
 
-            if (w -> left -> color == BLACK && w -> right -> color == BLACK) {
-                w -> color = RED;
-                x = x -> parent;
-            }
-            else {
-                if (w -> right -> color == BLACK) {
-                    w -> left -> color = BLACK;
-                    w -> color = RED;
-                    rotate_right(map, w);
-                    w = x -> parent -> right;
-                }
+    size_t cap = 16, count = 0;
+    key_t* keys = malloc(cap * sizeof(key_t));
 
-                w -> color = x -> parent -> color;
-                x -> parent -> color = BLACK;
-                w -> right -> color = BLACK;
-                rotate_left(map, x -> parent);
-                x = map -> root;
-            }
-        }
-        else {
-            rb_node_t* w = x -> parent -> left;
-            if (w -> color == RED) {
-                w -> color = BLACK;
-                x -> parent -> color = RED;
-                rotate_right(map, x -> parent);
-                w = x -> parent -> left;
-            }
-
-            if (w -> right -> color == BLACK && w -> left -> color == BLACK) {
-                w -> color = RED;
-                x = x -> parent;
-            }
-            else {
-                if (w -> left -> color == BLACK) {
-                    w -> right -> color = BLACK;
-                    w -> color = RED;
-                    rotate_left(map, w);
-                    w = x -> parent -> left;
-                }
-
-                w -> color = x -> parent -> color;
-                x -> parent -> color = BLACK;
-                w -> left -> color = BLACK;
-                rotate_right(map, x -> parent);
-                x = map -> root;
-            }
-        }
+    if (!keys) {
+        perror("Failed to allocate initial key array");
+        return NULL;
     }
 
-    x -> color = BLACK;
+    collect(map->root, &keys, &count, &cap, map->nil);
+    if (out_count) *out_count = count;
+    return keys;
 }
 
-//刪除map裡指定key的節點
-void map_delete(map_t* map, int key) {
-    rb_node_t* node = map_search(map, key);
-    
-    if (node == map -> nil) {
-        return;
-    }
-
-    rb_node_t* y = node;
-    color_t y_original_color = y -> color;
-    rb_node_t* x;
-    
-    if (node -> left == map -> nil) {
-        x = node -> right;
-        rb_transplant(map, node, node -> right);
-    }
-    else if (node -> right == map -> nil) {
-        x = node -> left;
-        rb_transplant(map, node, node -> left);
-    }
-    else {
-        y = rb_minimum(map, node -> right); //找到一個key比node的大且其數值距離node最近的節點y
-        y_original_color = y -> color;
-        x = y -> right;
-
-        if (y -> parent == node) {
-            x -> parent = y;
-        }
-        else {
-            rb_transplant(map, y, y -> right);
-            y -> right = node -> right;
-            y -> right -> parent = y;
-        }
-
-        rb_transplant(map, node, y);
-        y -> left = node -> left;
-        y -> left -> parent = y;
-        y -> color = node -> color;
-    }
-
-    if (y_original_color == BLACK) {
-        rb_delete_fixup(map, x);
-    }
-
-    rb_node_destroy(node);
-}
-
-//預設比較函數
-int map_cmp_int(int key1, int key2) {
-        if (key1 < key2) {
-            return -1;
-        }
-        else if (key1 > key2) {
-            return 1;
-        }
-        else {
-            return 0;
-        } 
-}
