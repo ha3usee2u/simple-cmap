@@ -1,4 +1,3 @@
-
 ## simple-cmap
 
 `simple-cmap` 是一個使用紅黑樹實作的 C 語言鍵值對封裝模組，支援高效插入、查詢、刪除與遍歷操作，具備良好記憶體管理與錯誤防呆機制，適合系統工具、嵌入式應用或個人開發使用。
@@ -19,7 +18,6 @@
    ```
    make
    ```
-3. 可透過 Dr. Memory 或 Valgrind 執行記憶體錯誤檢查。
 
 ## 📦 專案結構
 
@@ -64,13 +62,3 @@ intmain(){
 gcc -std=c99 -g demo.c c-map.c map_*.c -o demo
 ./demo
 ```
-
-若使用 Dr. Memory（Windows）：
-
-```
-"C:\Program Files (x86)\Dr. Memory\bin\drmemory.exe"-- demo.exe
-```
-
-## 💡 設計理念
-
-此模組設計以  **安全性** 、**靈活性** 與 **效率** 為主軸，透過紅黑樹確保操作平衡，並加入錯誤防呆與自定義函式介面，提升可應用性。
