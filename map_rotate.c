@@ -1,7 +1,8 @@
 #include "map_internal.h"
 
-void rotate_left(map_t* map, rb_node_t* x) {
-    rb_node_t* y = x->right;
+void rotate_left(map_t *map, rb_node_t *x)
+{
+    rb_node_t *y = x->right;
     x->right = y->left;
     if (y->left != map->nil)
         y->left->parent = x;
@@ -16,8 +17,9 @@ void rotate_left(map_t* map, rb_node_t* x) {
     x->parent = y;
 }
 
-void rotate_right(map_t* map, rb_node_t* y) {
-    rb_node_t* x = y->left;
+void rotate_right(map_t *map, rb_node_t *y)
+{
+    rb_node_t *x = y->left;
     y->left = x->right;
     if (x->right != map->nil)
         x->right->parent = y;
